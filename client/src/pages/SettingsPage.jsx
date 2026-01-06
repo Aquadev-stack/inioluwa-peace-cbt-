@@ -140,7 +140,7 @@ export default function SettingsPage() {
     }
 
     try {
-      const res = await http.post("/reports", report);
+      const res = await http.post("/api/reports", report);
       setReport({ title: "", message: "" });
       setReportMsg({ type: "ok", text: res.data?.message || "Report sent ✅" });
     } catch (err) {

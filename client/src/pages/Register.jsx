@@ -42,7 +42,7 @@ export default function Register() {
     if (v) return setErr(v);
 
     try {
-      const res = await http.post("/auth/register", {
+      const res = await http.post("/api/auth/register", {
         name: form.name,
         email: form.email,
         matric: form.matric,

@@ -743,7 +743,7 @@ function QuestionSetBuilder() {
         })),
       };
 
-      await http.post("/question-sets", payload);
+      await http.post("/api/question-sets", payload);
 
       setOk("CBT Set saved ✅");
       resetAll();
