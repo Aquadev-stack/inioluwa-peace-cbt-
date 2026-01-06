@@ -29,19 +29,29 @@ export default function CbtPage() {
 
   // Load sets for this level
   useEffect(() => {
+    let alive = true;
+
     async function loadSets() {
       setBusySets(true);
       setSetsErr("");
+
       try {
+        // ✅ IMPORTANT FIX:
+        // Because http.baseURL is now just API domain,
+        // we must call /api/... here.
         const res = await http.get("/question-sets", {
           params: { level: Number(levelTab), special: "false" },
           headers: { "Cache-Control": "no-cache" },
         });
+
+        if (!alive) return;
         setSets(res.data?.items || []);
       } catch (e) {
+        if (!alive) return;
         setSets([]);
         setSetsErr(e?.response?.data?.message || "Failed to load CBT sets");
       } finally {
+        if (!alive) return;
         setBusySets(false);
       }
     }
@@ -51,6 +61,10 @@ export default function CbtPage() {
       setSets([]);
       setSetsErr("");
     }
+
+    return () => {
+      alive = false;
+    };
   }, [levelTab, semTab]);
 
   // group sets by course code (normalize spaces)
@@ -64,7 +78,10 @@ export default function CbtPage() {
     }
     // newest first
     for (const arr of map.values()) {
-      arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      arr.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
     }
     return map;
   }, [sets]);
@@ -73,18 +90,19 @@ export default function CbtPage() {
     const level = Number(levelTab);
     const semester = Number(semTab);
     navigate(
-      `/dashboard/cbt/exam/${encodeURIComponent(courseCode)}?level=${level}&semester=${semester}`
+      `/dashboard/cbt/exam/${encodeURIComponent(
+        courseCode
+      )}?level=${level}&semester=${semester}`
     );
   }
 
   function openSetExam(courseCode, setId) {
     const level = Number(levelTab);
     const semester = Number(semTab);
-    // same exam page, but pass setId
     navigate(
-      `/dashboard/cbt/exam/${encodeURIComponent(courseCode)}?level=${level}&semester=${semester}&setId=${encodeURIComponent(
-        setId
-      )}`
+      `/dashboard/cbt/exam/${encodeURIComponent(
+        courseCode
+      )}?level=${level}&semester=${semester}&setId=${encodeURIComponent(setId)}`
     );
   }
 
@@ -147,7 +165,8 @@ export default function CbtPage() {
               [html[data-theme='light']_&]:bg-slate-50 [html[data-theme='light']_&]:border-slate-200"
             >
               <p className="text-sm muted">
-                2nd semester is not available yet. We’ll upload those questions later.
+                2nd semester is not available yet. We’ll upload those questions
+                later.
               </p>
             </div>
           ) : (
@@ -189,7 +208,8 @@ export default function CbtPage() {
                     <div className="mt-4">
                       <div className="flex items-center justify-between">
                         <p className="text-xs muted">
-                          CBT Sets {courseSets.length ? `(${courseSets.length})` : ""}
+                          CBT Sets{" "}
+                          {courseSets.length ? `(${courseSets.length})` : ""}
                         </p>
                         {busySets ? (
                           <span className="text-[10px] muted">loading…</span>
@@ -197,9 +217,13 @@ export default function CbtPage() {
                       </div>
 
                       {courseSets.length === 0 ? (
-                        <div className="mt-2 rounded-xl bg-black/20 border border-white/10 p-3
-                          [html[data-theme='light']_&]:bg-slate-50 [html[data-theme='light']_&]:border-slate-200">
-                          <p className="text-xs muted">No sets for this course yet.</p>
+                        <div
+                          className="mt-2 rounded-xl bg-black/20 border border-white/10 p-3
+                          [html[data-theme='light']_&]:bg-slate-50 [html[data-theme='light']_&]:border-slate-200"
+                        >
+                          <p className="text-xs muted">
+                            No sets for this course yet.
+                          </p>
                         </div>
                       ) : (
                         <div className="mt-2 space-y-2">
@@ -210,14 +234,19 @@ export default function CbtPage() {
                               className="w-full text-left rounded-xl bg-black/20 border border-white/10 p-3 hover:bg-black/25 transition cursor-pointer
                                 [html[data-theme='light']_&]:bg-slate-50 [html[data-theme='light']_&]:border-slate-200 [html[data-theme='light']_&]:hover:bg-slate-100"
                             >
-                              <p className="text-sm font-semibold truncate">{s.title || "Untitled set"}</p>
+                              <p className="text-sm font-semibold truncate">
+                                {s.title || "Untitled set"}
+                              </p>
                               <p className="text-xs muted mt-1">
-                                {s.totalQuestions || 0} Q • {secToMMSS(s.durationSec || 0)}
+                                {s.totalQuestions || 0} Q •{" "}
+                                {secToMMSS(s.durationSec || 0)}
                               </p>
                             </button>
                           ))}
                           {courseSets.length > 3 ? (
-                            <p className="text-[10px] muted">+ {courseSets.length - 3} more…</p>
+                            <p className="text-[10px] muted">
+                              + {courseSets.length - 3} more…
+                            </p>
                           ) : null}
                         </div>
                       )}
@@ -234,7 +263,9 @@ export default function CbtPage() {
           <ul className="mt-3 space-y-2 text-sm">
             <li className="muted">• Main Exam uses the normal question pool.</li>
             <li className="muted">• CBT Sets are admin-created custom exams.</li>
-            <li className="muted">• Sets can have different duration and question count.</li>
+            <li className="muted">
+              • Sets can have different duration and question count.
+            </li>
             <li className="muted">• Both open the same exam page.</li>
           </ul>
         </Card>
@@ -268,7 +299,9 @@ function TabBtn({ active, onClick, children }) {
       onClick={onClick}
       className={[
         "rounded-xl border px-3 py-2 text-sm transition cursor-pointer",
-        active ? "bg-[#0A8270]/30 border-[#7CFF6B]/30" : "bg-white/10 border-white/15 hover:bg-white/15",
+        active
+          ? "bg-[#0A8270]/30 border-[#7CFF6B]/30"
+          : "bg-white/10 border-white/15 hover:bg-white/15",
         "[html[data-theme='light']_&]:bg-slate-50 [html[data-theme='light']_&]:border-slate-200 [html[data-theme='light']_&]:hover:bg-slate-100",
       ].join(" ")}
     >
