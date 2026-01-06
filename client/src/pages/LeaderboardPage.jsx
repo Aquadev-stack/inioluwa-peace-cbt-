@@ -229,7 +229,7 @@ export default function LeaderboardPage() {
       setLoading(true);
       setError("");
       try {
-        const res = await http.get("/api/leaderboard", {
+        const res = await http.get("/leaderboard", {
           params: { level, courseCode, limit: 50 },
         });
 

@@ -55,7 +55,7 @@ export default function CbtExamPage() {
 
         if (setId) {
           // ✅ SET MODE
-          const res = await http.get(`/api/question-sets/${encodeURIComponent(setId)}`, {
+          const res = await http.get(`/question-sets/${encodeURIComponent(setId)}`, {
             headers: { "Cache-Control": "no-cache" },
           });
 
@@ -88,7 +88,7 @@ export default function CbtExamPage() {
         }
 
         // ✅ MAIN MODE (normal question pool)
-        const res = await http.get("/api/questions", {
+        const res = await http.get("/questions", {
           params: {
             course: decodeURIComponent(course || ""),
             level,

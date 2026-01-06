@@ -24,7 +24,7 @@ export default function AdminDashboardPage() {
   async function loadReportsLite() {
     setTopErr("");
     try {
-      const res = await http.get("/api/reports");
+      const res = await http.get("/reports");
       setReports(res.data?.reports || []);
     } catch (e) {
       // keep UI stable if route isn't ready
@@ -362,7 +362,7 @@ function PdfUploadOnly() {
   async function loadPdfs() {
     setListBusy(true);
     try {
-      const res = await http.get("/api/pdfs", {
+      const res = await http.get("/pdfs", {
         params: {
           q: q.trim() || undefined,
           level: levelFilter || undefined,

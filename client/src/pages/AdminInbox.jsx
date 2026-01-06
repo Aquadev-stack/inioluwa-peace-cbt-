@@ -22,7 +22,7 @@ export default function AdminInbox() {
     setErr("");
     setLoading(true);
     try {
-      const res = await http.get("/api/reports");
+      const res = await http.get("/reports");
       setReports(res.data?.reports || []);
     } catch (e) {
       setErr(e?.response?.data?.message || "Failed to load reports");
