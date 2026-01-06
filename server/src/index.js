@@ -25,17 +25,22 @@ dotenv.config();
 
 const app = express();
 
+// ✅ Helps when behind Render/Netlify proxies
+app.set("trust proxy", 1);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/** ✅ CORS (Netlify + localhost + any extra env origins) */
+/** ✅ Build allowed origins for CORS */
 function buildAllowedOrigins() {
   const list = [];
 
-  // frontend url from env (your netlify link)
-  if (process.env.CLIENT_URL) list.push(process.env.CLIENT_URL);
+  // 1) Primary frontend (Netlify)
+  // Example: CLIENT_URL=https://inioluwa-peace-cbt.netlify.app
+  if (process.env.CLIENT_URL) list.push(process.env.CLIENT_URL.trim());
 
-  // optional extra allowed origins (comma separated)
+  // 2) Extra origins (comma separated)
+  // Example: CORS_ORIGINS=https://inioluwa-peace-cbt.netlify.app,http://localhost:5173
   if (process.env.CORS_ORIGINS) {
     process.env.CORS_ORIGINS.split(",")
       .map((x) => x.trim())
@@ -43,20 +48,25 @@ function buildAllowedOrigins() {
       .forEach((x) => list.push(x));
   }
 
-  // local dev
+  // 3) Local dev
   list.push("http://localhost:5173");
 
-  // remove duplicates
+  // Remove duplicates
   return [...new Set(list)];
 }
 
 const allowedOrigins = buildAllowedOrigins();
 
+/** ✅ Security + parsing */
 app.use(helmet());
+app.use(express.json({ limit: "4mb" }));
+app.use(morgan("dev"));
+
+/** ✅ CORS */
 app.use(
   cors({
     origin: (origin, cb) => {
-      // allow non-browser requests (like Render health checks, Postman)
+      // Allow server-to-server requests / Postman / Render health checks
       if (!origin) return cb(null, true);
 
       if (allowedOrigins.includes(origin)) return cb(null, true);
@@ -67,18 +77,14 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "4mb" }));
-app.use(morgan("dev"));
-
-/** ✅ Health */
+/** ✅ Health routes */
 app.get("/", (req, res) => res.json({ message: "INIOLUWA PEACE CBT API ✅" }));
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 /**
- * ✅ uploads folder
- * IMPORTANT:
- * Put uploads at: server/uploads (NOT inside src)
- * because Render deploy/build is cleaner that way.
+ * ✅ Static uploads
+ * Recommended folder: server/uploads (NOT inside src)
+ * So this points to: <projectRoot>/uploads
  */
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
@@ -92,7 +98,12 @@ app.use("/api/questions", questionRoutes);
 app.use("/api/exams", examRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 
-/** ✅ Error handler (so CORS error shows clearly) */
+/** ✅ Not found fallback */
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+/** ✅ Error handler (CORS errors show here too) */
 app.use((err, req, res, next) => {
   console.error("SERVER ERROR:", err?.message || err);
   res.status(500).json({ message: err?.message || "Server error" });
@@ -106,7 +117,7 @@ async function start() {
 
     const server = http.createServer(app);
 
-    // ✅ Socket.IO (optional, safe)
+    /** ✅ Socket.IO with same CORS rules */
     const io = new Server(server, {
       cors: {
         origin: allowedOrigins,
@@ -114,13 +125,17 @@ async function start() {
       },
     });
 
+    // Make io usable in routes/controllers:
+    // const io = req.app.get("io");
     app.set("io", io);
 
     io.on("connection", (socket) => {
+      // Admin room
       socket.on("join", ({ role }) => {
         if (role === "admin") socket.join("admins");
       });
 
+      // Leaderboard room format: lb:<level>:<COURSECODE>
       socket.on("joinLeaderboard", ({ level, courseCode }) => {
         const lv = Number(level);
         const cc = String(courseCode || "").toUpperCase().trim();
