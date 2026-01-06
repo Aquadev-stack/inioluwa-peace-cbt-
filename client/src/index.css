@@ -1,0 +1,24 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+/* Make select dropdown readable in dark mode */
+html[data-theme="dark"] select,
+html[data-theme="dark"] option {
+  background: #0f172a; /* slate-900 */
+  color: #ffffff;
+}
+
+/* Light mode */
+html[data-theme="light"] select,
+html[data-theme="light"] option {
+  background: #ffffff;
+  color: #0f172a; /* slate-900 */
+}
+
+body {
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
