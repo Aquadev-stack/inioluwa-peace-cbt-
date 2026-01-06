@@ -1,9 +1,12 @@
 // client/src/api/http.js
 import axios from "axios";
 
+const baseURL =
+  import.meta.env.VITE_API_BASE_URL?.trim() || "http://localhost:5000";
+
 export const http = axios.create({
-  baseURL: "",          // ✅ proxy mode (like before)
-  withCredentials: false,
+  baseURL,
+  withCredentials: true,
 });
 
 export function setAuthToken(token) {
