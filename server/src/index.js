@@ -35,12 +35,12 @@ const __dirname = path.dirname(__filename);
 function buildAllowedOrigins() {
   const list = [];
 
-  // 1) Primary frontend (Netlify)
+  // Primary frontend (Netlify)
   // Example: CLIENT_URL=https://inioluwa-peace-cbt.netlify.app
   if (process.env.CLIENT_URL) list.push(process.env.CLIENT_URL.trim());
 
-  // 2) Extra origins (comma separated)
-  // Example: CORS_ORIGINS=https://inioluwa-peace-cbt.netlify.app,http://localhost:5173
+  // Extra origins (comma separated)
+  // Example: CORS_ORIGINS=https://something.netlify.app,http://localhost:5173
   if (process.env.CORS_ORIGINS) {
     process.env.CORS_ORIGINS.split(",")
       .map((x) => x.trim())
@@ -48,7 +48,7 @@ function buildAllowedOrigins() {
       .forEach((x) => list.push(x));
   }
 
-  // 3) Local dev
+  // Local dev
   list.push("http://localhost:5173");
 
   // Remove duplicates
@@ -62,16 +62,26 @@ app.use(helmet());
 app.use(express.json({ limit: "4mb" }));
 app.use(morgan("dev"));
 
-/** ✅ CORS */
+/** ✅ CORS (Netlify + previews + allow-list) */
 app.use(
   cors({
     origin: (origin, cb) => {
-      // Allow server-to-server requests / Postman / Render health checks
+      // Allow server-to-server / health checks / Postman
       if (!origin) return cb(null, true);
 
+      // Allow anything explicitly listed
       if (allowedOrigins.includes(origin)) return cb(null, true);
 
-      return cb(new Error(`CORS blocked: ${origin}`));
+      // Allow ANY Netlify subdomain (including preview builds)
+      try {
+        const host = new URL(origin).host;
+        if (host.endsWith(".netlify.app")) return cb(null, true);
+      } catch (_) {}
+
+      // Allow local dev (extra safety)
+      if (origin === "http://localhost:5173") return cb(null, true);
+
+      return cb(new Error("CORS blocked: " + origin));
     },
     credentials: true,
   })
@@ -84,7 +94,7 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 /**
  * ✅ Static uploads
  * Recommended folder: server/uploads (NOT inside src)
- * So this points to: <projectRoot>/uploads
+ * This points to: <projectRoot>/uploads
  */
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
@@ -120,13 +130,25 @@ async function start() {
     /** ✅ Socket.IO with same CORS rules */
     const io = new Server(server, {
       cors: {
-        origin: allowedOrigins,
+        origin: (origin, cb) => {
+          if (!origin) return cb(null, true);
+
+          if (allowedOrigins.includes(origin)) return cb(null, true);
+
+          try {
+            const host = new URL(origin).host;
+            if (host.endsWith(".netlify.app")) return cb(null, true);
+          } catch (_) {}
+
+          if (origin === "http://localhost:5173") return cb(null, true);
+
+          return cb(new Error("Socket CORS blocked: " + origin));
+        },
         credentials: true,
       },
     });
 
-    // Make io usable in routes/controllers:
-    // const io = req.app.get("io");
+    // Make io usable in controllers: req.app.get("io")
     app.set("io", io);
 
     io.on("connection", (socket) => {
@@ -153,7 +175,7 @@ async function start() {
 
     server.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);
-      console.log("✅ Allowed CORS origins:", allowedOrigins);
+      console.log("✅ Allowed origins:", allowedOrigins);
     });
   } catch (err) {
     console.error("❌ Start failed:", err?.message || err);
