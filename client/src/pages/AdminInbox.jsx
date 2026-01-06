@@ -48,7 +48,7 @@ export default function AdminInbox() {
   async function markRead(id) {
     setErr("");
     try {
-      await http.put(`/api/reports/${id}/read`);
+      await http.put(`/reports/${id}/read`);
       setReports((prev) => prev.map((r) => (r._id === id ? { ...r, status: "read" } : r)));
     } catch (e) {
       setErr(e?.response?.data?.message || "Failed to mark read");
@@ -59,7 +59,7 @@ export default function AdminInbox() {
   async function archive(id) {
     setErr("");
     try {
-      await http.put(`/api/reports/${id}/archive`);
+      await http.put(`/reports/${id}/archive`);
       setReports((prev) => prev.map((r) => (r._id === id ? { ...r, status: "archived" } : r)));
     } catch (e) {
       setErr(e?.response?.data?.message || "Failed to archive");
@@ -72,7 +72,7 @@ export default function AdminInbox() {
 
     setErr("");
     try {
-      await http.delete(`/api/reports/${id}`);
+      await http.delete(`/reports/${id}`);
       setReports((prev) => prev.filter((r) => r._id !== id));
     } catch (e) {
       setErr(e?.response?.data?.message || "Failed to delete");

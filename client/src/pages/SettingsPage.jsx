@@ -75,7 +75,7 @@ export default function SettingsPage() {
   async function saveProfile() {
     setMsg({ type: "", text: "" });
     try {
-      const res = await http.put("/api/auth/me", {
+      const res = await http.put("/auth/me", {
         ...profile,
         avatar,
       });
@@ -93,7 +93,7 @@ export default function SettingsPage() {
   async function changePassword() {
     setPwdMsg({ type: "", text: "" });
     try {
-      const res = await http.put("/api/auth/me/password", pwd);
+      const res = await http.put("/auth/me/password", pwd);
       setPwd({ currentPassword: "", newPassword: "" });
       setPwdMsg({ type: "ok", text: res.data?.message || "Password updated ✅" });
     } catch (err) {
