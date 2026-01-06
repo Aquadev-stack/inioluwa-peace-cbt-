@@ -400,7 +400,7 @@ function PdfUploadOnly() {
       fd.append("level", String(form.level));
       fd.append("isNew", String(!!form.isNew));
 
-      await http.post("/api/pdfs", fd);
+      await http.post("/pdfs", fd);
 
       setOk("PDF uploaded ✅");
       setForm({ title: "", course: "", level: form.level, isNew: true });
@@ -743,7 +743,7 @@ function QuestionSetBuilder() {
         })),
       };
 
-      await http.post("/api/question-sets", payload);
+      await http.post("/question-sets", payload);
 
       setOk("CBT Set saved ✅");
       resetAll();
