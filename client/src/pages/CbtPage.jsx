@@ -33,7 +33,7 @@ export default function CbtPage() {
       setBusySets(true);
       setSetsErr("");
       try {
-        const res = await http.get("/api/question-sets", {
+        const res = await http.get("/question-sets", {
           params: { level: Number(levelTab), special: "false" },
           headers: { "Cache-Control": "no-cache" },
         });
