@@ -22,7 +22,7 @@ export default function Login() {
     try {
       setLoading(true);
 
-      const res = await http.post("/auth/login", {
+      const res = await http.post("/api/auth/login", {
         email: form.email,
         password: form.password,
       });
