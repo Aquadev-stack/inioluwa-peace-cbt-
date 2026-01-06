@@ -99,14 +99,14 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 /** ✅ API routes */
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/pdfs", pdfRoutes);
-app.use("/api/reports", reportRoutes);
-app.use("/api/question-sets", questionSetRoutes);
-app.use("/api/questions", questionRoutes);
-app.use("/api/exams", examRoutes);
-app.use("/api/leaderboard", leaderboardRoutes);
+app.use("/auth", authRoutes);
+app.use("/admin", adminRoutes);
+app.use("/pdfs", pdfRoutes);
+app.use("/reports", reportRoutes);
+app.use("/question-sets", questionSetRoutes);
+app.use("/questions", questionRoutes);
+app.use("/exams", examRoutes);
+app.use("/leaderboard", leaderboardRoutes);
 
 /** ✅ Not found fallback */
 app.use((req, res) => {
