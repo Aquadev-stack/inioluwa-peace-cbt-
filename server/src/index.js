@@ -1,4 +1,3 @@
-// server/src/index.js
 import dotenv from "dotenv";
 import path from "path";
 import express from "express";
@@ -28,41 +27,19 @@ dotenv.config();
 
 const app = express();
 
-// ---------- dirname (ESM) ----------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---------- security / parsing ----------
 app.use(helmet());
-
-// ---------- CORS (supports prod + local) ----------
-const allowedOrigins = [
-  process.env.CLIENT_URL, // e.g. https://yourapp.netlify.app
-  "http://localhost:5173",
-].filter(Boolean);
-
-app.use(
-  cors({
-    origin: function (origin, cb) {
-      // allow requests with no origin (Postman, server-to-server)
-      if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error("Not allowed by CORS: " + origin));
-    },
-    credentials: true,
-  })
-);
-
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json({ limit: "4mb" }));
 app.use(morgan("dev"));
 
-// ---------- health ----------
 app.get("/", (req, res) => res.json({ message: "INIOLUWA PEACE CBT API" }));
 
-// ---------- static uploads ----------
+// Static uploads folder (your uploads is inside src/uploads in your screenshot)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ---------- routes ----------
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/pdfs", pdfRoutes);
@@ -76,18 +53,6 @@ app.use("/api/exams", examRoutes);
 // leaderboard
 app.use("/api/leaderboard", leaderboardRoutes);
 
-// ---------- error handler (keeps errors clean for users) ----------
-app.use((err, req, res, next) => {
-  // common: cors blocked
-  if (String(err?.message || "").includes("Not allowed by CORS")) {
-    console.error("CORS ERROR:", err.message);
-    return res.status(403).json({ message: "CORS blocked: update CLIENT_URL" });
-  }
-
-  console.error("SERVER ERROR:", err);
-  return res.status(500).json({ message: "Server error" });
-});
-
 const PORT = process.env.PORT || 5000;
 
 async function start() {
@@ -98,7 +63,7 @@ async function start() {
 
     const io = new Server(server, {
       cors: {
-        origin: allowedOrigins,
+        origin: "http://localhost:5173",
         credentials: true,
       },
     });
@@ -131,12 +96,11 @@ async function start() {
       socket.on("disconnect", () => {});
     });
 
-    server.listen(PORT, () => {
-      console.log(`✅ Server running on http://localhost:${PORT}`);
-      console.log("✅ Allowed CORS origins:", allowedOrigins);
-    });
+    server.listen(PORT, () =>
+      console.log(` Server running on http://localhost:${PORT}`)
+    );
   } catch (err) {
-    console.error("❌ DB connection failed:", err.message);
+    console.error(" DB connection failed:", err.message);
     process.exit(1);
   }
 }
