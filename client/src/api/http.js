@@ -3,8 +3,9 @@ import axios from "axios";
 const API = import.meta.env.VITE_API_URL || "https://inioluwa-peace-cbt.onrender.com";
 
 export const http = axios.create({
-  baseURL: `${API}/api`,
+  baseURL: API,
   withCredentials: true,
+  timeout: 20000,
 });
 
 export function setAuthToken(token) {
