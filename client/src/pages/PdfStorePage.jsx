@@ -17,7 +17,7 @@ export default function PdfStorePage() {
 
     const t = setTimeout(async () => {
       try {
-        const res = await http.get("/pdfs", {
+        const res = await http.get("/api/pdfs", {
           params: { level, q },
         });
 
