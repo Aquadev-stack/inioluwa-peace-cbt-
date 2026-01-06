@@ -1,21 +1,21 @@
-// server/src/routes/authRoutes.js
-import express from "express";
-import {
+const express = require("express");
+const router = express.Router();
+
+const {
   register,
   login,
   getMe,
   updateMe,
   changePassword,
-} from "../controllers/authController.js";
-import { requireAuth } from "../middleware/authMiddleware.js";
+} = require("../controllers/authController");
 
-const router = express.Router();
+const { requireAuth } = require("../middleware/auth");
 
-// ✅ AUTH ROUTES
 router.post("/register", register);
 router.post("/login", login);
+
 router.get("/me", requireAuth, getMe);
 router.put("/me", requireAuth, updateMe);
-router.put("/change-password", requireAuth, changePassword);
+router.put("/me/password", requireAuth, changePassword);
 
-export default router;
+module.exports = router;
