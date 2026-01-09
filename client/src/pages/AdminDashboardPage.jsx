@@ -422,7 +422,7 @@ function PdfUploadOnly() {
     setErr("");
     setOk("");
     try {
-      await http.delete(`/api/pdfs/${id}`);
+      await http.delete(`/pdfs/${id}`);
       setOk("PDF deleted ✅");
       await loadPdfs();
     } catch (e) {
