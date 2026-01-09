@@ -3,18 +3,18 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
-import { fileURLToPath } from "url";
 
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { listPdfs, uploadPdf, deletePdf } from "../controllers/pdfController.js";
 
 const router = express.Router();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// ✅ ensure upload folder exists inside server/src/uploads/pdfs (matches index.js static)
-const uploadDir = path.join(__dirname, "..", "uploads", "pdfs");
+/**
+ * ✅ uploads folder should be OUTSIDE src
+ * so it works cleanly on Render:
+ * server/uploads/pdfs
+ */
+const uploadDir = path.join(process.cwd(), "uploads", "pdfs");
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -29,7 +29,9 @@ const upload = multer({
   storage,
   limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
   fileFilter: (req, file, cb) => {
-    const ok = file.mimetype === "application/pdf" || file.originalname.toLowerCase().endsWith(".pdf");
+    const ok =
+      file.mimetype === "application/pdf" ||
+      file.originalname.toLowerCase().endsWith(".pdf");
     cb(ok ? null : new Error("Only PDF files are allowed"), ok);
   },
 });
