@@ -423,7 +423,7 @@ function PdfUploadOnly() {
     setOk("");
     try {
       await http.delete(`/pdfs/${id}`);
-      setOk("PDF deleted ✅");
+      setOk("PDF deleted ");
       await loadPdfs();
     } catch (e) {
       setErr(e?.response?.data?.message || "Delete failed (server error)");

@@ -81,7 +81,7 @@ export default function SettingsPage() {
       });
 
       saveAuth({ ...auth, user: res.data.user });
-      setMsg({ type: "ok", text: "Profile updated ✅" });
+      setMsg({ type: "ok", text: "Profile updated " });
     } catch (err) {
       setMsg({
         type: "err",
@@ -95,7 +95,7 @@ export default function SettingsPage() {
     try {
       const res = await http.put("/auth/me/password", pwd);
       setPwd({ currentPassword: "", newPassword: "" });
-      setPwdMsg({ type: "ok", text: res.data?.message || "Password updated ✅" });
+      setPwdMsg({ type: "ok", text: res.data?.message || "Password updated " });
     } catch (err) {
       setPwdMsg({
         type: "err",
@@ -126,7 +126,7 @@ export default function SettingsPage() {
 
   function copyText(txt) {
     navigator.clipboard?.writeText(txt).then(
-      () => alert("Copied ✅"),
+      () => alert("Copied to clipboard "),
       () => alert("Copy failed ❌")
     );
   }

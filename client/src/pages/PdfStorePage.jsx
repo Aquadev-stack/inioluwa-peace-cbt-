@@ -1,5 +1,42 @@
+// client/src/pages/PdfStorePage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { http } from "../api/http";
+
+function getApiOrigin() {
+  // Your VITE_API_URL should be like: https://inioluwa-peace-cbt.onrender.com
+  // Sometimes people set it like: https://inioluwa-peace-cbt.onrender.com/api
+  let api = (import.meta.env.VITE_API_URL || "").trim();
+
+  if (!api) return ""; // fallback handled below
+
+  // remove trailing slashes
+  api = api.replace(/\/+$/, "");
+
+  // if it ends with /api, strip it (we want origin only for file links)
+  if (api.endsWith("/api")) api = api.slice(0, -4);
+
+  return api;
+}
+
+function buildFileUrl(fileUrl) {
+  if (!fileUrl) return "";
+  // already absolute
+  if (/^https?:\/\//i.test(fileUrl)) return fileUrl;
+
+  const origin = getApiOrigin();
+
+  // last-resort fallback: try using axios baseURL if env missing
+  // (baseURL might be https://.../api so we also strip /api)
+  let fallback = (http?.defaults?.baseURL || "").replace(/\/+$/, "");
+  if (fallback.endsWith("/api")) fallback = fallback.slice(0, -4);
+
+  const base = origin || fallback || "";
+
+  // ensure fileUrl starts with /
+  const path = fileUrl.startsWith("/") ? fileUrl : `/${fileUrl}`;
+
+  return `${base}${path}`;
+}
 
 export default function PdfStorePage() {
   const [q, setQ] = useState("");
@@ -9,7 +46,6 @@ export default function PdfStorePage() {
   const [itemsRaw, setItemsRaw] = useState([]);
   const [err, setErr] = useState("");
 
-  // fetch from backend whenever level or q changes (with small debounce)
   useEffect(() => {
     let alive = true;
     setErr("");
@@ -19,6 +55,7 @@ export default function PdfStorePage() {
       try {
         const res = await http.get("/pdfs", {
           params: { level, q },
+          headers: { "Cache-Control": "no-cache" },
         });
 
         if (!alive) return;
@@ -41,9 +78,15 @@ export default function PdfStorePage() {
   const items = useMemo(() => itemsRaw || [], [itemsRaw]);
 
   function openPdf(item) {
-    // backend returns fileUrl like: /uploads/pdfs/xxxx.pdf
     if (!item?.fileUrl) return alert("PDF missing link");
-    window.open(`http://localhost:5000${item.fileUrl}`, "_blank", "noopener,noreferrer");
+
+    const url = buildFileUrl(item.fileUrl);
+
+    if (!url) return alert("PDF link is not configured (missing VITE_API_URL)");
+
+    // On some mobile browsers, window.open may be blocked, so we fallback
+    const w = window.open(url, "_blank", "noopener,noreferrer");
+    if (!w) window.location.assign(url);
   }
 
   return (
@@ -60,7 +103,6 @@ export default function PdfStorePage() {
             </p>
           </div>
 
-          {/* Level switch */}
           <div
             className="rounded-xl bg-black/20 border border-white/10 p-1 flex
             [html[data-theme='light']_&]:bg-slate-50 [html[data-theme='light']_&]:border-slate-200"
