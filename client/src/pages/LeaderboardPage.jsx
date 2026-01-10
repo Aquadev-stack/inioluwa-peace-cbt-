@@ -87,7 +87,7 @@ function LeaderboardTable({ rows }) {
   );
 }
 
-// ✅ Mobile bottom-sheet modal (scroll lock safe)
+//  Mobile bottom-sheet modal (scroll lock safe)
 function MobileModal({ open, onClose, title, subtitle, children }) {
   const prevOverflowRef = React.useRef(null);
 

@@ -2,7 +2,7 @@
 import Leaderboard from "../models/Leaderboard.js";
 
 export async function getLeaderboard(req, res) {
-  // ✅ prevent 304 / cached empty body issues
+  //  prevent 304 / cached empty body issues
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.set("Pragma", "no-cache");
   res.set("Expires", "0");

@@ -12,7 +12,7 @@ const leaderboardSchema = new mongoose.Schema(
     bestCorrect: { type: Number, required: true },
     bestTotal: { type: Number, required: true },
 
-    // ✅ needed for ranking by time
+    //  needed for ranking by time
     bestTimeSpentSeconds: { type: Number, required: true },
 
     // tracking
@@ -25,7 +25,7 @@ const leaderboardSchema = new mongoose.Schema(
 // one row per user per course/level
 leaderboardSchema.index({ course: 1, level: 1, user: 1 }, { unique: true });
 
-// ✅ speeds up leaderboard queries
+//  speeds up leaderboard queries
 leaderboardSchema.index({ course: 1, level: 1, bestScorePercent: -1, bestTimeSpentSeconds: 1 });
 
 export default mongoose.model("Leaderboard", leaderboardSchema);
