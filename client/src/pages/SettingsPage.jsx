@@ -406,7 +406,7 @@ export default function SettingsPage() {
       {/* Developers */}
       <Card>
         <h3 className="text-lg font-semibold">Developers</h3>
-        <p className="muted mt-2 text-sm">Built with love for Mathematics students — INIOLUWA PEACE CBT.</p>
+        <p className="muted mt-2 text-sm">Built with love for Fuoye students - INIOLUWA PEACE CBT.</p>
 
         <div className="mt-4 grid sm:grid-cols-2 gap-3">
           <DevCard
