@@ -8,8 +8,11 @@ import Leaderboard from "../models/Leaderboard.js";
 const EXAM_QUESTIONS_COUNT = 30;
 const EXAM_DURATION_SECONDS = 25 * 60;
 
+function normalizeCourse(code) {
+  return String(code || "").replace(/\s+/g, "").toUpperCase().trim();
+}
+
 function getStudentLevel(user) {
-  // supports different possible field names without guessing your schema too hard
   const raw =
     user?.level ??
     user?.currentLevel ??
@@ -19,12 +22,12 @@ function getStudentLevel(user) {
 
   const lvl = Number(raw);
   if (lvl === 100 || lvl === 200) return lvl;
-  return null; // unknown -> we won't block (keeps current behavior)
+  return null;
 }
 
 function assertLevelAllowed(user, examLevel) {
   const studentLevel = getStudentLevel(user);
-  if (!studentLevel) return { ok: true }; // can't enforce if not stored
+  if (!studentLevel) return { ok: true };
 
   if (studentLevel !== examLevel) {
     return {
@@ -32,7 +35,6 @@ function assertLevelAllowed(user, examLevel) {
       message: `You are registered as ${studentLevel} Level. You can only take ${studentLevel} Level CBT exams.`,
     };
   }
-
   return { ok: true };
 }
 
@@ -41,14 +43,14 @@ export async function startExam(req, res) {
   try {
     if (!req.user?._id) return res.status(401).json({ message: "Not authenticated" });
 
-    const courseCode = String(req.body.courseCode || "").toUpperCase().trim();
+    const courseCodeRaw = String(req.body.courseCode || "");
+    const courseCode = normalizeCourse(courseCodeRaw);
     const level = Number(req.body.level);
 
     if (!courseCode || !level) {
       return res.status(400).json({ message: "courseCode and level are required" });
     }
 
-    // ✅ block wrong level start
     const gate = assertLevelAllowed(req.user, level);
     if (!gate.ok) return res.status(403).json({ message: gate.message });
 
@@ -92,7 +94,8 @@ export async function submitExam(req, res) {
   try {
     if (!req.user?._id) return res.status(401).json({ message: "Not authenticated" });
 
-    const courseCode = String(req.body.courseCode || "").toUpperCase().trim();
+    const courseCodeRaw = String(req.body.courseCode || "");
+    const courseCode = normalizeCourse(courseCodeRaw); // ✅ normalize always
     const level = Number(req.body.level);
     const attemptId = String(req.body.attemptId || "");
     const timeSpentSecondsRaw = Number(req.body.timeSpentSeconds);
@@ -102,7 +105,6 @@ export async function submitExam(req, res) {
       return res.status(400).json({ message: "courseCode, level, attemptId are required" });
     }
 
-    // ✅ block wrong level submit (prevents recording even if they bypass start)
     const gate = assertLevelAllowed(req.user, level);
     if (!gate.ok) return res.status(403).json({ message: gate.message });
 
@@ -110,7 +112,10 @@ export async function submitExam(req, res) {
       return res.status(400).json({ message: "Invalid attemptId" });
     }
 
-    const timeSpentSeconds = Number.isFinite(timeSpentSecondsRaw) ? Math.max(0, timeSpentSecondsRaw) : NaN;
+    const timeSpentSeconds = Number.isFinite(timeSpentSecondsRaw)
+      ? Math.max(0, timeSpentSecondsRaw)
+      : NaN;
+
     if (!Number.isFinite(timeSpentSeconds)) {
       return res.status(400).json({ message: "Invalid timeSpentSeconds" });
     }
@@ -119,7 +124,7 @@ export async function submitExam(req, res) {
       return res.status(400).json({ message: `answers cannot exceed ${EXAM_QUESTIONS_COUNT}` });
     }
 
-    // ✅ idempotent: if result already exists, return it (doesn't create leaderboard again)
+    // idempotent
     const existingResult = await ExamResult.findOne({ attemptId }).lean();
     if (existingResult) {
       return res.json({
@@ -200,14 +205,15 @@ export async function submitExam(req, res) {
     attempt.status = "submitted";
     await attempt.save();
 
-    // leaderboard upsert
+    // ✅ LEADERBOARD: upsert on normalized courseCode
     const now = new Date();
+
     let lb = await Leaderboard.findOne({ course: courseCode, level, user: req.user._id });
 
     if (!lb) {
       try {
         lb = await Leaderboard.create({
-          course: courseCode,
+          course: courseCode, // ✅ normalized stored
           level,
           user: req.user._id,
           bestScorePercent: scorePercent,
@@ -242,6 +248,15 @@ export async function submitExam(req, res) {
       }
 
       await lb.save();
+    }
+
+    // ✅ emit realtime update
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`lb:${level}:${courseCode}`).emit("leaderboardUpdated", {
+        level,
+        courseCode,
+      });
     }
 
     const corrections = qDocs.map((q) => {

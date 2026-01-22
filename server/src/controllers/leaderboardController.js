@@ -1,13 +1,18 @@
 // server/src/controllers/leaderboardController.js
 import Leaderboard from "../models/Leaderboard.js";
 
+function normalizeCourse(code) {
+  return String(code || "").replace(/\s+/g, "").toUpperCase().trim();
+}
+
 export async function getLeaderboard(req, res) {
-  //  prevent 304 / cached empty body issues
+  // prevent cached empty body / 304 weirdness
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.set("Pragma", "no-cache");
   res.set("Expires", "0");
 
-  const courseCode = String(req.query.courseCode || "").toUpperCase().trim();
+  const courseCodeRaw = String(req.query.courseCode || "");
+  const courseCode = normalizeCourse(courseCodeRaw);
   const level = Number(req.query.level);
   const limit = Math.min(100, Math.max(5, Number(req.query.limit || 50)));
 

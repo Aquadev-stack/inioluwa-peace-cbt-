@@ -111,7 +111,7 @@ export default function CbtPage() {
       >
         <h2 className="text-xl font-semibold">CBT</h2>
         <p className="mt-1 text-sm text-white/70 [html[data-theme='light']_&]:text-slate-600">
-          Select a level to open CBT in a modal (mobile friendly).
+          Select a level to open CBT in a modal.
         </p>
 
         {/* Semester */}
@@ -283,7 +283,7 @@ function TabBtn({ active, onClick, children }) {
 
 function Modal({ title, children, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center ">
       <button
         onClick={onClose}
         className="absolute inset-0 bg-black/60"

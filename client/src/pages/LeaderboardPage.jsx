@@ -4,7 +4,11 @@ import { courses100_1st, courses200_1st } from "../data/courses";
 import { http } from "../api/http";
 import { io } from "socket.io-client";
 
-// ---------- socket (single instance) ----------
+function normalizeCourse(code) {
+  return String(code || "").replace(/\s+/g, "").toUpperCase().trim();
+}
+
+// socket (single instance)
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
 let _socket = null;
 
@@ -17,7 +21,6 @@ function getSocket() {
   return _socket;
 }
 
-// ---------- helpers ----------
 function formatTime(seconds) {
   if (seconds == null || Number.isNaN(seconds)) return "--:--";
   const s = Math.max(0, Math.floor(seconds));
@@ -87,11 +90,10 @@ function LeaderboardTable({ rows }) {
   );
 }
 
-//  Mobile bottom-sheet modal (scroll lock safe)
+// Mobile modal
 function MobileModal({ open, onClose, title, subtitle, children }) {
   const prevOverflowRef = React.useRef(null);
 
-  // ESC close
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -101,7 +103,6 @@ function MobileModal({ open, onClose, title, subtitle, children }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  // scroll lock
   useEffect(() => {
     if (open) {
       if (prevOverflowRef.current === null) {
@@ -117,7 +118,6 @@ function MobileModal({ open, onClose, title, subtitle, children }) {
     }
   }, [open]);
 
-  // restore on unmount
   useEffect(() => {
     return () => {
       if (prevOverflowRef.current !== null) {
@@ -168,13 +168,12 @@ export default function LeaderboardPage() {
 
   const [entries, setEntries] = useState([]);
   const [search, setSearch] = useState("");
-  const [sortMode, setSortMode] = useState("rank"); // rank | time
+  const [sortMode, setSortMode] = useState("rank");
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ✅ detect lg breakpoint (Tailwind lg = 1024px)
   const [isLgUp, setIsLgUp] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(min-width: 1024px)").matches;
@@ -184,7 +183,6 @@ export default function LeaderboardPage() {
     const mq = window.matchMedia("(min-width: 1024px)");
     const onChange = (e) => setIsLgUp(e.matches);
 
-    // Safari fallback
     if (mq.addEventListener) mq.addEventListener("change", onChange);
     else mq.addListener(onChange);
 
@@ -194,7 +192,6 @@ export default function LeaderboardPage() {
     };
   }, []);
 
-  // ✅ if we enter desktop, force-close mobile modal so body scroll never locks
   useEffect(() => {
     if (isLgUp && mobileOpen) setMobileOpen(false);
   }, [isLgUp, mobileOpen]);
@@ -204,7 +201,6 @@ export default function LeaderboardPage() {
     [activeLevel]
   );
 
-  // pick default course per level
   useEffect(() => {
     if (!selectedCourse) {
       setSelectedCourse(courses[0] ?? null);
@@ -220,7 +216,7 @@ export default function LeaderboardPage() {
     if (!selectedCourse) return;
 
     const socket = getSocket();
-    const courseCode = selectedCourse.code;
+    const courseCode = normalizeCourse(selectedCourse.code); // ✅ normalize always
     const level = activeLevel;
 
     let cancelled = false;
@@ -271,8 +267,9 @@ export default function LeaderboardPage() {
 
     const handler = (payload) => {
       const pLevel = Number(payload?.level);
-      const pCourse = String(payload?.courseCode || "").toUpperCase().trim();
-      if (pLevel === level && pCourse === String(courseCode).toUpperCase().trim()) {
+      const pCourse = normalizeCourse(payload?.courseCode);
+
+      if (pLevel === level && pCourse === courseCode) {
         fetchLeaderboard();
       }
     };
@@ -336,23 +333,17 @@ export default function LeaderboardPage() {
     setSelectedCourse(c);
     setSearch("");
     setSortMode("rank");
-
-    // ✅ only open modal on < lg screens
     if (!isLgUp) setMobileOpen(true);
   }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-5">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold">Leaderboard</h1>
-          <p className="mt-1 text-sm text-white/70">
-            Top performing students per course
-          </p>
+          <p className="mt-1 text-sm text-white/70">Top performing students per course</p>
         </div>
 
-        {/* Level tabs */}
         <div className="flex w-full sm:w-auto gap-2 rounded-2xl border border-white/10 bg-white/5 p-1">
           {[100, 200].map((lv) => (
             <button
@@ -364,9 +355,7 @@ export default function LeaderboardPage() {
                 setSortMode("rank");
               }}
               className={`w-full sm:w-auto rounded-xl px-4 py-2 text-sm font-bold ${
-                activeLevel === lv
-                  ? "bg-white/10"
-                  : "text-white/60 hover:text-white"
+                activeLevel === lv ? "bg-white/10" : "text-white/60 hover:text-white"
               }`}
             >
               {lv} Level
@@ -375,9 +364,7 @@ export default function LeaderboardPage() {
         </div>
       </div>
 
-      {/* Layout */}
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.4fr]">
-        {/* Courses */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
           <div className="mb-3 flex items-center justify-between">
             <div>
@@ -389,7 +376,6 @@ export default function LeaderboardPage() {
             </div>
           </div>
 
-          {/* responsive grid */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {courses.map((c) => (
               <button
@@ -403,24 +389,19 @@ export default function LeaderboardPage() {
               >
                 <div className="font-extrabold">{c.code}</div>
                 <div className="text-xs text-white/70 truncate">{c.title}</div>
-                <div className="mt-3 text-xs text-white/50 lg:hidden">
-                  Tap to view leaderboard
-                </div>
+                <div className="mt-3 text-xs text-white/50 lg:hidden">Tap to view leaderboard</div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Desktop leaderboard */}
         <div className="hidden lg:block rounded-2xl border border-white/10 bg-white/[0.04] p-4">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-lg font-extrabold truncate">
                 {selectedCourse?.code ?? "Select a course"}
               </div>
-              <div className="text-xs text-white/70 truncate">
-                {selectedCourse?.title ?? ""}
-              </div>
+              <div className="text-xs text-white/70 truncate">{selectedCourse?.title ?? ""}</div>
             </div>
 
             <div className="text-xs text-white/60 shrink-0">
@@ -448,7 +429,6 @@ export default function LeaderboardPage() {
         </div>
       </div>
 
-      {/* Mobile modal leaderboard (only opens on < lg) */}
       <MobileModal
         open={mobileOpen && !isLgUp}
         onClose={() => setMobileOpen(false)}

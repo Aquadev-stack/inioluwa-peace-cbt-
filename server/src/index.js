@@ -24,23 +24,20 @@ import leaderboardRoutes from "./routes/leaderboardRoutes.js";
 dotenv.config();
 
 const app = express();
-
-// ✅ Helps when behind Render/Netlify proxies
 app.set("trust proxy", 1);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/** ✅ Build allowed origins for CORS */
+function normalizeCourse(code) {
+  return String(code || "").replace(/\s+/g, "").toUpperCase().trim();
+}
+
 function buildAllowedOrigins() {
   const list = [];
 
-  // Primary frontend (Netlify)
-  // Example: CLIENT_URL=https://inioluwa-peace-cbt.netlify.app
   if (process.env.CLIENT_URL) list.push(process.env.CLIENT_URL.trim());
 
-  // Extra origins (comma separated)
-  // Example: CORS_ORIGINS=https://something.netlify.app,http://localhost:5173
   if (process.env.CORS_ORIGINS) {
     process.env.CORS_ORIGINS.split(",")
       .map((x) => x.trim())
@@ -48,37 +45,30 @@ function buildAllowedOrigins() {
       .forEach((x) => list.push(x));
   }
 
-  // Local dev
   list.push("http://localhost:5173");
 
-  // Remove duplicates
   return [...new Set(list)];
 }
 
 const allowedOrigins = buildAllowedOrigins();
 
-/** ✅ Security + parsing */
 app.use(helmet());
 app.use(express.json({ limit: "4mb" }));
 app.use(morgan("dev"));
 
-/** ✅ CORS (Netlify + previews + allow-list) */
 app.use(
   cors({
     origin: (origin, cb) => {
-      // Allow server-to-server / health checks / Postman
       if (!origin) return cb(null, true);
 
-      // Allow anything explicitly listed
       if (allowedOrigins.includes(origin)) return cb(null, true);
 
-      // Allow ANY Netlify subdomain (including preview builds)
       try {
         const host = new URL(origin).host;
         if (host.endsWith(".netlify.app")) return cb(null, true);
+        if (host.endsWith(".vercel.app")) return cb(null, true);
       } catch (_) {}
 
-      // Allow local dev (extra safety)
       if (origin === "http://localhost:5173") return cb(null, true);
 
       return cb(new Error("CORS blocked: " + origin));
@@ -87,19 +77,13 @@ app.use(
   })
 );
 
-/** ✅ Health routes */
 app.get("/", (req, res) => res.json({ message: "INIOLUWA PEACE CBT API ✅" }));
 app.get("/health", (req, res) => res.json({ ok: true }));
 
-/**
- * ✅ Static uploads
- * Recommended folder: server/uploads (NOT inside src)
- * This points to: <projectRoot>/uploads
- */
+// uploads folder should be server/uploads (not src)
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-
-/** ✅ API routes */
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/pdfs", pdfRoutes);
@@ -109,12 +93,10 @@ app.use("/api/questions", questionRoutes);
 app.use("/api/exams", examRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 
-/** ✅ Not found fallback */
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-/** ✅ Error handler (CORS errors show here too) */
 app.use((err, req, res, next) => {
   console.error("SERVER ERROR:", err?.message || err);
   res.status(500).json({ message: err?.message || "Server error" });
@@ -128,7 +110,6 @@ async function start() {
 
     const server = http.createServer(app);
 
-    /** ✅ Socket.IO with same CORS rules */
     const io = new Server(server, {
       cors: {
         origin: (origin, cb) => {
@@ -139,6 +120,7 @@ async function start() {
           try {
             const host = new URL(origin).host;
             if (host.endsWith(".netlify.app")) return cb(null, true);
+            if (host.endsWith(".vercel.app")) return cb(null, true);
           } catch (_) {}
 
           if (origin === "http://localhost:5173") return cb(null, true);
@@ -149,26 +131,24 @@ async function start() {
       },
     });
 
-    // Make io usable in controllers: req.app.get("io")
     app.set("io", io);
 
     io.on("connection", (socket) => {
-      // Admin room
       socket.on("join", ({ role }) => {
         if (role === "admin") socket.join("admins");
       });
 
-      // Leaderboard room format: lb:<level>:<COURSECODE>
+      // ✅ normalize room keys so they match DB + API
       socket.on("joinLeaderboard", ({ level, courseCode }) => {
         const lv = Number(level);
-        const cc = String(courseCode || "").toUpperCase().trim();
+        const cc = normalizeCourse(courseCode);
         if (!lv || !cc) return;
         socket.join(`lb:${lv}:${cc}`);
       });
 
       socket.on("leaveLeaderboard", ({ level, courseCode }) => {
         const lv = Number(level);
-        const cc = String(courseCode || "").toUpperCase().trim();
+        const cc = normalizeCourse(courseCode);
         if (!lv || !cc) return;
         socket.leave(`lb:${lv}:${cc}`);
       });
